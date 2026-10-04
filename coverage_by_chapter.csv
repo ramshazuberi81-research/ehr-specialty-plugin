@@ -1,0 +1,23 @@
+chapter,codes,general,pct_general
+1 Certain infectious and parasitic diseases (A00-B99),1067,0,0.0
+2 Neoplasms (C00-D49),1727,0,0.0
+3 Diseases of the blood and blood-forming organs and certain disorders involving the immune mechanism (D50-D89),323,323,100.0
+"4 Endocrine, nutritional and metabolic diseases (E00-E89)",971,711,73.2
+"5 Mental, Behavioral and Neurodevelopmental disorders (F01-F99)",870,0,0.0
+6 Diseases of the nervous system (G00-G99),700,0,0.0
+7 Diseases of the eye and adnexa (H00-H59),2677,0,0.0
+8 Diseases of the ear and mastoid process (H60-H95),653,0,0.0
+9 Diseases of the circulatory system (I00-I99),1427,0,0.0
+10 Diseases of the respiratory system (J00-J99),360,0,0.0
+11 Diseases of the digestive system (K00-K95),857,0,0.0
+12 Diseases of the skin and subcutaneous tissue (L00-L99),1000,0,0.0
+13 Diseases of the musculoskeletal system and connective tissue (M00-M99),6665,0,0.0
+14 Diseases of the genitourinary system (N00-N99),836,0,0.0
+"15 Pregnancy, childbirth and the puerperium (O00-O9A)",2437,2437,100.0
+16 Certain conditions originating in the perinatal period (P00-P96),462,462,100.0
+"17 Congenital malformations, deformations and chromosomal abnormalities (Q00-QA0)",894,894,100.0
+"18 Symptoms, signs and abnormal clinical and laboratory findings, not elsewhere classified (R00-R99)",772,772,100.0
+"19 Injury, poisoning and certain other consequences of external causes (S00-T88)",41142,41142,100.0
+20 External causes of morbidity (V00-Y99),7461,7461,100.0
+21 Factors influencing health status and contact with health services (Z00-Z99),1410,1410,100.0
+22 Codes for special purposes (U00-U85),3,3,100.0

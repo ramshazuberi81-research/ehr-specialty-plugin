@@ -1,0 +1,12 @@
+# Local sandbox: a private HAPI FHIR test server + the plugin. Synthetic data only.
+services:
+  fhir:
+    image: hapiproject/hapi:latest
+    ports: ["8080:8080"]
+  plugin:
+    build: .
+    env_file: .env
+    environment:
+      FHIR_BASE: http://fhir:8080/fhir
+    ports: ["8000:8000"]
+    depends_on: [fhir]

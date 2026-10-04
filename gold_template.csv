@@ -1,0 +1,10 @@
+code,gold_specialties,weight
+H40.9,ophthalmology,1
+E11.319,endocrinology|ophthalmology,1
+I10,cardiology,1
+J30.1,ent,1
+B30.9,ophthalmology,1
+K21.9,gastroenterology,1
+C50.9,oncology,1
+Z99.9,general,1
+G43.909,neurology,1
