@@ -4,7 +4,18 @@ import pytest
 from fastapi import HTTPException
 
 from app.cds_hooks import build_cards, discovery, specialties_of_user
-from tests.test_filing import FakeResp
+
+
+class FakeResp:
+    """Minimal stand-in for an httpx response (defined here so this file has no cross-test imports)."""
+    def __init__(self, body, status=200):
+        self._b, self.status_code, self.text = body, status, str(body)
+
+    def json(self):
+        return self._b
+
+    def raise_for_status(self):
+        pass
 
 
 class Router:
