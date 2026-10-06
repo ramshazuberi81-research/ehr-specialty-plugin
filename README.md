@@ -31,7 +31,7 @@ Built on **FHIR R4**. It is rule-based (no machine learning), and it is designed
 ```bash
 pip install -r requirements-dev.txt
 python scripts/demo_local.py     # files 4 synthetic diagnoses, prints the ophthalmology summary
-pytest -q                        # 29 tests
+pytest -q                        # 30 tests
 ```
 
 Or run it in the browser: click the **Open in Colab** badge above.
@@ -69,8 +69,9 @@ cp .env.example .env             # set WEBHOOK_SECRET to a long random string
 docker compose up --build        # HAPI FHIR on :8080, plugin on :8000
 ```
 
-The Docker setup is provided but **has not yet been verified end-to-end**. The Python code and tests are
-verified offline against a fake FHIR client. API docs: http://localhost:8000/docs.
+The plugin logic is tested end-to-end against HAPI FHIR R4, with the plugin run natively (`uvicorn app.main:app`).
+The Docker Compose setup is provided, but its container networking is not yet verified. The Python tests also run
+offline against a fake FHIR client. API docs: http://localhost:8000/docs.
 
 | Endpoint | Purpose |
 |---|---|
@@ -92,6 +93,7 @@ All but `/health` and `/cds-services` require the `X-Webhook-Secret` header. The
 - Every write is one atomic FHIR transaction with a `Provenance` record.
 - Idempotent: already-tagged records are skipped (this also prevents webhook loops).
 - Shows nothing rather than something wrong: no card when the specialty is unknown or nothing is recorded.
+- Unknown clinical status is shown in its own "status not recorded" section and counted on the CDS card, never assumed to be a past problem.
 
 ## Known limitations
 
@@ -100,14 +102,14 @@ All but `/health` and `/cds-services` require the `X-Webhook-Secret` header. The
 - Normalized Observations are not yet specialty-tagged, so they don't appear in summaries.
 - Auth is a shared secret, fine for a sandbox, not for production. The CDS Hooks endpoint must verify the
   EHR's signed JWT, and users should authenticate via SMART on FHIR, before any pilot.
-- The CDS Hooks service is tested against a fake FHIR server, not yet in the official CDS Hooks sandbox or a real EHR.
+- The CDS Hooks service is tested against a fake FHIR client and a local HAPI server, not yet in the official CDS Hooks sandbox or a real EHR.
 - No PHI handling, encryption at rest, access logging, or consent logic.
 
 ## Roadmap
 
 1. Run the accuracy study in `EVALUATION.md` and fill the gaps found in the audit, with clinician sign-off.
 2. Verify the EHR's JWT in the CDS Hooks service and test it in the CDS Hooks sandbox.
-3. Verify the Docker setup end-to-end and add sample FHIR `Subscription` resources.
+3. Fix and verify the Docker container networking, and add sample FHIR `Subscription` resources.
 4. Pagination, observation tagging, retry and dead-letter handling.
 5. Shadow-mode pilot beside a real chart at a partner clinic, under that site's governance. Measure
    filing errors and time saved.
@@ -136,7 +138,7 @@ engineers who can critique the design. Please keep all test data synthetic.
 
 ## Author
 
-Ramsha Zuberi, Clinical AI Researcher (oral oncology focus).
+Ramsha Zuberi, Clinical AI Researcher (oral oncology focus). Developed with AI assistance (Claude); design, clinical framing, testing and review by the author.
 [ORCID 0009-0004-9272-0343](https://orcid.org/0009-0004-9272-0343) · [GitHub](https://github.com/ramshazuberi81-research)
 
 ## License
