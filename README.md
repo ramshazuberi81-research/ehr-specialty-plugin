@@ -1,6 +1,7 @@
 # EHR Specialty Filing Plugin
 
 [![tests](https://github.com/ramshazuberi81-research/ehr-specialty-plugin/actions/workflows/ci.yml/badge.svg)](https://github.com/ramshazuberi81-research/ehr-specialty-plugin/actions)
+[![docker-e2e](https://github.com/ramshazuberi81-research/ehr-specialty-plugin/actions/workflows/docker.yml/badge.svg)](https://github.com/ramshazuberi81-research/ehr-specialty-plugin/actions)
 [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ramshazuberi81-research/ehr-specialty-plugin/blob/main/notebooks/ehr_plugin_colab_demo.ipynb)
 
 > **Research prototype. Synthetic and public data only. Not for clinical use.**
@@ -69,9 +70,9 @@ cp .env.example .env             # set WEBHOOK_SECRET to a long random string
 docker compose up --build        # HAPI FHIR on :8080, plugin on :8000
 ```
 
-The plugin logic is tested end-to-end against HAPI FHIR R4, with the plugin run natively (`uvicorn app.main:app`).
-The Docker Compose setup is provided, but its container networking is not yet verified. The Python tests also run
-offline against a fake FHIR client. API docs: http://localhost:8000/docs.
+The Docker Compose setup is verified end-to-end in CI: the `docker-e2e` workflow (`scripts/e2e_docker.sh`) starts HAPI FHIR R4
+and the plugin, files a diagnosis, builds the summary and the CDS card, and checks that a wrong secret is rejected.
+The Python tests also run offline against a fake FHIR client. API docs: http://localhost:8000/docs.
 
 | Endpoint | Purpose |
 |---|---|
@@ -103,13 +104,14 @@ All but `/health` and `/cds-services` require the `X-Webhook-Secret` header. The
 - Auth is a shared secret, fine for a sandbox, not for production. The CDS Hooks endpoint must verify the
   EHR's signed JWT, and users should authenticate via SMART on FHIR, before any pilot.
 - The CDS Hooks service is tested against a fake FHIR client and a local HAPI server, not yet in the official CDS Hooks sandbox or a real EHR.
+- Docker Compose passes on a GitHub Actions runner. In one GitHub Codespace the plugin container timed out connecting to HAPI; this was not diagnosed and looks environment-specific.
 - No PHI handling, encryption at rest, access logging, or consent logic.
 
 ## Roadmap
 
 1. Run the accuracy study in `EVALUATION.md` and fill the gaps found in the audit, with clinician sign-off.
 2. Verify the EHR's JWT in the CDS Hooks service and test it in the CDS Hooks sandbox.
-3. Fix and verify the Docker container networking, and add sample FHIR `Subscription` resources.
+3. Add sample FHIR `Subscription` resources so the FHIR server calls the plugin automatically.
 4. Pagination, observation tagging, retry and dead-letter handling.
 5. Shadow-mode pilot beside a real chart at a partner clinic, under that site's governance. Measure
    filing errors and time saved.
@@ -120,7 +122,7 @@ All but `/health` and `/cds-services` require the `X-Webhook-Secret` header. The
 ```
 app/        main.py  filing.py  cds_hooks.py  normalize.py  auth.py  config.py
 tests/      pytest suite (offline, fake FHIR client)
-scripts/    demo_local.py  evaluate_filing.py  build_icd10_dataset.py  coverage_icd10.py  gen_keys.py
+scripts/    demo_local.py  evaluate_filing.py  build_icd10_dataset.py  coverage_icd10.py  e2e_docker.sh  gen_keys.py
 data/       coverage_by_chapter.csv  general_blocks.csv  gold_template.csv
 notebooks/  ehr_plugin_colab_demo.ipynb
 EVALUATION.md   four-stage evaluation plan
@@ -138,7 +140,7 @@ engineers who can critique the design. Please keep all test data synthetic.
 
 ## Author
 
-Ramsha Zuberi, Clinical AI Researcher (oral oncology focus). Developed with AI assistance ; design, clinical framing, testing and review by the author.
+Ramsha Zuberi, Clinical AI Researcher (oral oncology focus). Developed with AI assistance; design, clinical framing, testing and review by the author.
 [ORCID 0009-0004-9272-0343](https://orcid.org/0009-0004-9272-0343) · [GitHub](https://github.com/ramshazuberi81-research)
 
 ## License
