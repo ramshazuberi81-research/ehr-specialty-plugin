@@ -229,7 +229,7 @@ async def previsit_summary(client, patient_id: str, specialty: str) -> dict:
 
     S = {"patient": {"id": patient_id, "name": name, "birthDate": pat.get("birthDate")},
          "specialty": specialty, "generated": datetime.now(timezone.utc).isoformat(),
-         "alerts": [], "active": [], "past": [], "medications": [], "results": [],
+         "alerts": [], "active": [], "unknown": [], "past": [], "medications": [], "results": [],
          "visits": [], "open_items": [], "gaps": []}
 
     for a in allergies:
@@ -245,7 +245,9 @@ async def previsit_summary(client, patient_id: str, specialty: str) -> dict:
         txt = f"{_label(c)}{f' ({code})' if code else ''} - {st}" + (f", {_date(c)}" if _date(c) else "")
         if review:
             txt += "  [code awaiting doctor confirmation]"
-        S["active" if st in ACTIVE else "past"].append(_item(c, txt, needs_review=review))
+        # Unknown status is never silently treated as "past": it gets its own bucket, shown to the doctor.
+        bucket = "active" if st in ACTIVE else ("unknown" if st == "status not recorded" else "past")
+        S[bucket].append(_item(c, txt, needs_review=review))
 
     for m in meds:
         linked = [r.get("reference") for r in m.get("reasonReference", [])]
@@ -281,7 +283,7 @@ async def previsit_summary(client, patient_id: str, specialty: str) -> dict:
 def render_text(S: dict) -> str:
     out = [f"PRE-VISIT SUMMARY - {S['specialty'].upper()}",
            f"Patient: {S['patient']['name']}" + (f" (DOB {S['patient']['birthDate']})" if S['patient']['birthDate'] else "")]
-    for title, key in [("ALERTS", "alerts"), ("ACTIVE PROBLEMS", "active"), ("PAST PROBLEMS", "past"),
+    for title, key in [("ALERTS", "alerts"), ("ACTIVE PROBLEMS", "active"), ("STATUS NOT RECORDED (confirm active or past)", "unknown"), ("PAST PROBLEMS", "past"),
                        ("MEDICATIONS", "medications"), ("RESULTS", "results"),
                        ("RECENT VISITS", "visits"), ("OPEN ITEMS", "open_items")]:
         if S[key]:

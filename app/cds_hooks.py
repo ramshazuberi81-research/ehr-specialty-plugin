@@ -37,10 +37,12 @@ async def specialties_of_user(client, user_id: str) -> list:
 
 
 def card_from_summary(S: dict) -> dict | None:
-    if not (S["active"] or S["past"] or S["alerts"]):
+    if not (S["active"] or S["unknown"] or S["past"] or S["alerts"]):
         return None  # nothing recorded for this specialty: no card
-    n_review = sum(1 for i in S["active"] + S["past"] if i.get("needs_review"))
+    n_review = sum(1 for i in S["active"] + S["unknown"] + S["past"] if i.get("needs_review"))
     bits = [f"{len(S['active'])} active problem(s)"]
+    if S["unknown"]:
+        bits.append(f"{len(S['unknown'])} with status not recorded")
     if S["alerts"]:
         bits.append(f"{len(S['alerts'])} allergy alert(s)")
     if n_review:
@@ -48,7 +50,7 @@ def card_from_summary(S: dict) -> dict | None:
     summary = f"{S['specialty'].title()} pre-visit: " + ", ".join(bits)
     return {
         "summary": summary[:140],
-        "indicator": "warning" if (S["alerts"] or n_review) else "info",
+        "indicator": "warning" if (S["alerts"] or n_review or S["unknown"]) else "info",
         "source": {"label": "EHR Specialty Filing Plugin (synthetic-data prototype)"},
         "detail": "```\n" + render_text(S) + "\n```",
     }

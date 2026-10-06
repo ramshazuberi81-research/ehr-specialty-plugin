@@ -60,3 +60,11 @@ def test_nothing_recorded_returns_no_cards():
 def test_bad_request_rejected():
     with pytest.raises(HTTPException):
         run(build_cards(Router({}), {"hook": "order-sign", "context": {}}))
+
+
+def test_unknown_status_is_not_called_past_and_is_counted_on_card():
+    no_status = {k: v for k, v in COND.items() if k != "clinicalStatus"}
+    r = Router({"PractitionerRole": [ROLE], "Condition": [no_status]})
+    card = run(build_cards(r, {"hook": "patient-view", "context": {"userId": "x", "patientId": "p1"}}))["cards"][0]
+    assert "1 with status not recorded" in card["summary"] and card["indicator"] == "warning"
+    assert "STATUS NOT RECORDED" in card["detail"] and "PAST PROBLEMS" not in card["detail"]
