@@ -1,0 +1,9 @@
+name: docker-e2e
+on: [push, workflow_dispatch]
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash scripts/e2e_docker.sh
