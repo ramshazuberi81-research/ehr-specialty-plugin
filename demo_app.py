@@ -115,6 +115,6 @@ if not os.environ.get("ANTHROPIC_API_KEY"):
     main._llm = lambda client: stand_in_llm
 
 if __name__ == "__main__":
-    print("\nOpen http://localhost:8000/ask-page   (secret: demo)")
+    print("\nOpen http://localhost:8000/ask-page   (secret: demo, or your WEBHOOK_SECRET)")
     print("Try: show records for Jane Doe | Sam Lee | Sam Lee born 1990-05-05 | John Smith ophthalmology\n")
-    uvicorn.run(main.app, host="127.0.0.1", port=8000)
+    uvicorn.run(main.app, host=os.environ.get("HOST", "127.0.0.1"), port=int(os.environ.get("PORT", "8000")))
