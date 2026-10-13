@@ -1,0 +1,10 @@
+.env
+private_key.pem
+*.pem
+jwks.json
+__pycache__/
+.pytest_cache/
+.venv/
+*.pyc
+data/icd10cm_billable.csv
+.ipynb_checkpoints/
