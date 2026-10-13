@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ask the Chart (v2 demo)</title>
+<style>
+:root{--bg:#f4f7f7;--card:#fff;--tx:#12262a;--mut:#58696d;--ac:#0d7377;--acs:#d9efef;--bd:#d3dfe0;--warn:#9a5b00;--warns:#fff2da;--bad:#a8281c;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1b1d;--card:#162528;--tx:#e6f0f0;--mut:#9bb0b3;--ac:#4cc3c7;--acs:#17393b;--bd:#2a3f42;--warn:#f1b660;--warns:#3a2c12;--bad:#ff8a7d}}
+:root[data-theme="dark"]{--bg:#0f1b1d;--card:#162528;--tx:#e6f0f0;--mut:#9bb0b3;--ac:#4cc3c7;--acs:#17393b;--bd:#2a3f42;--warn:#f1b660;--warns:#3a2c12;--bad:#ff8a7d}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:1000px;margin:0 auto;padding:16px}
+h1{font:600 28px/1.2 Georgia,"Times New Roman",serif;margin:0 0 4px}
+h2{font:600 18px/1.3 Georgia,serif;margin:0 0 8px}
+.demo{background:var(--warns);color:var(--warn);border-radius:8px;padding:8px 12px;font-size:14px;margin:8px 0 16px}
+.bar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:16px}
+.seg{display:inline-flex;border:1px solid var(--ac);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:none;color:var(--ac);padding:8px 16px;font:inherit;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--ac);color:var(--bg)}
+.grid{display:grid;grid-template-columns:1.2fr 1fr;gap:16px}
+@media(max-width:760px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:14px;margin-bottom:16px}
+input[type=text],select{width:100%;padding:10px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);font:inherit}
+button.b{background:var(--ac);color:var(--bg);border:0;border-radius:8px;padding:10px 14px;font:inherit;cursor:pointer}
+button.g{background:none;color:var(--ac);border:1px solid var(--ac);border-radius:8px;padding:6px 10px;font:inherit;cursor:pointer;margin:2px 4px 2px 0}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--ac);outline-offset:2px}
+.row{display:flex;gap:8px;margin-bottom:8px}
+.heard{border-left:4px solid var(--ac);background:var(--acs);padding:8px 12px;border-radius:0 8px 8px 0;margin:8px 0}
+.src{color:var(--mut);font-size:13px}.warn{color:var(--warn)}.bad{color:var(--bad)}
+ul{margin:4px 0;padding-left:20px}table{border-collapse:collapse;width:100%}td,th{text-align:left;padding:4px 8px 4px 0;vertical-align:top}
+.scroll{overflow-x:auto}
+.item{border-top:1px solid var(--bd);padding:8px 0}
+details summary{cursor:pointer;color:var(--mut)}
+</style></head><body><main>
+<h1>Ask the chart</h1>
+<div class="demo"><b>Demo.</b> Fake patients only; everything runs in this page. The sign-in below is simulated. A real product needs real login. Not for clinical use.</div>
+
+<div class="bar">
+ <div class="seg" role="group" aria-label="View"><button id="vd" aria-pressed="true">Doctor view</button><button id="vp" aria-pressed="false">Patient view</button></div>
+ <label id="meBox" hidden>Signed in as (simulated) <select id="me" style="width:auto"></select></label>
+ <span id="who" class="src"></span>
+</div>
+
+<div class="grid"><div>
+ <div class="card"><h2>Ask or tell</h2>
+  <div class="row"><input type="text" id="cmd" aria-label="Command" placeholder="Show Ahmed Khan's medications"><button class="b" id="go">Ask</button><button class="g" id="mic" style="margin:0">Speak</button></div>
+  <label class="src"><input type="checkbox" id="spk"> Read my command back aloud</label>
+  <div class="src">Voice uses your browser's speech service, which may send audio to its vendor. Typing never leaves your device.</div>
+  <div id="chips" style="margin-top:8px"></div>
+  <div id="feed" aria-live="polite"></div>
+ </div>
+ <div class="card" id="chart"></div>
+</div><div>
+ <div class="card"><h2>Reminders</h2><div id="rem"></div></div>
+ <div class="card" id="draftCard"><h2>Medicine drafts (not active)</h2><div id="drafts"></div></div>
+ <div class="card"><details><summary>Access log</summary><div id="log" class="src"></div></details></div>
+</div></div>
+
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const P=[
+{id:'p1',name:'Ahmed Khan',assigned:1,next:'27 Oct 2026, 09:30 (Ophthalmology)',meds:[{n:'Metformin',d:'500 mg twice daily',why:'Type 2 diabetes'},{n:'Lisinopril',d:'10 mg once daily',why:'High blood pressure'}],res:[{t:'HbA1c 8.1 %',ack:0},{t:'Creatinine 1.0 mg/dL',ack:1}],dx:[{t:'Type 2 diabetes (E11.9)',filed:1},{t:'Blurred vision (free text, needs coding review)',filed:0}]},
+{id:'p2',name:'Ahmed Siddiqui',assigned:1,next:'Not recorded',meds:[{n:'Hydralazine',d:'25 mg three times daily',why:'High blood pressure'}],res:[{t:'Potassium 4.2 mmol/L',ack:1}],dx:[{t:'Hypertension (I10)',filed:1}]},
+{id:'p3',name:'Sara Noor',assigned:1,next:'2 Nov 2026, 14:00 (Cardiology)',meds:[{n:'Atorvastatin',d:'20 mg at night',why:'High cholesterol'}],res:[{t:'LDL 148 mg/dL',ack:0}],dx:[{t:'Hyperlipidaemia (E78.5)',filed:1}]},
+{id:'p4',name:'Bilal Hussain',assigned:0,next:'Not recorded',meds:[],res:[],dx:[]}];
+const REF={metformin:'Lowers blood sugar in type 2 diabetes.',lisinopril:'Relaxes blood vessels to lower blood pressure and protect the heart and kidneys.',atorvastatin:'Lowers LDL cholesterol to reduce heart attack and stroke risk.',hydralazine:'Relaxes blood vessels to lower blood pressure.',hydroxyzine:'An antihistamine used for itching, anxiety and as a sedative.'};
+const LOOK={hydralazine:'hydroxyzine',hydroxyzine:'hydralazine'};
+const DOCS=['Dr. Rana','Dr. Qureshi'];
+let role='doctor',me='p1',sel=null,rem=[],drafts=[],logs=[],feed=[],did=0;
+const byId=i=>P.find(p=>p.id===i);
+const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const user=()=>role==='doctor'?'Dr. Rana':'Patient '+byId(me).name;
+function log(a,r){logs.unshift(new Date().toLocaleTimeString()+' | '+user()+' | '+a+' | '+r)}
+const assigned=()=>P.filter(p=>p.assigned);
+
+function resolve(q){
+ q=q.trim();const toks=q.split(/\s+/).filter(Boolean);
+ const selfW=/^(|my|me|mine|myself|i)$/.test(q);
+ if(role==='patient'){
+  if(selfW)return{k:'ok',p:byId(me)};
+  const m=P.filter(p=>toks.every(t=>p.name.toLowerCase().includes(t)));
+  if(m.length&&m.every(p=>p.id===me))return{k:'ok',p:byId(me)};
+  return m.length?{k:'denied'}:{k:'none',q};
+ }
+ if(/^(|his|her|him|them|their|this patient|the patient|patient)$/.test(q))return sel?{k:'ok',p:sel}:{k:'need'};
+ const m=assigned().filter(p=>toks.every(t=>p.name.toLowerCase().includes(t)));
+ return m.length===1?{k:'ok',p:m[0]}:m.length>1?{k:'many',list:m}:{k:'none',q};
+}
+function gate(r,act){
+ if(r.k==='ok')return null;
+ if(r.k==='many'){log(act,'ambiguous name, asked to clarify');return{u:'Which patient?',h:'<b>'+r.list.length+' patients match.</b> I will not guess between people with the same name. Say the full name: '+r.list.map(p=>esc(p.name)).join(' or ')+'.'}}
+ if(r.k==='denied'){log(act,'DENIED (not own record)');return{u:'Request refused.',h:'<span class="bad">You can only see your own record in patient view.</span> This attempt was logged.'}}
+ if(r.k==='need')return{u:'No patient chosen.',h:'Name a patient first, for example "Show Sara Noor\'s medications".'};
+ log(act,'no match among accessible patients');
+ return{u:'No match found.',h:'No patient called "'+esc(r.q)+'" among '+(role==='doctor'?'your assigned patients':'your record')+'. Records you are not assigned to are not available.'};
+}
+function medsHtml(p){
+ if(!p.meds.length)return'<span class="src">Medications: not recorded.</span>';
+ return'<div class="scroll"><table><tr><th>Medicine</th><th>Dose</th><th>Reason</th></tr>'+p.meds.map(m=>'<tr><td>'+esc(m.n)+(m.draft?'':'')+'</td><td>'+esc(m.d)+'</td><td>'+esc(m.why||'not recorded')+'</td></tr>').join('')+'</table></div><div class="src">Source: medication list in chart</div>';
+}
+function dateOf(t){
+ const d=new Date();let m;
+ if(/\btoday\b/.test(t))return[iso(d),'today'];
+ if(/\btomorrow\b/.test(t)){d.setDate(d.getDate()+1);return[iso(d),'tomorrow']}
+ if(m=t.match(/\bin (\d+) days?\b/)){d.setDate(d.getDate()+ +m[1]);return[iso(d),m[0]]}
+ if(m=t.match(/\b\d{4}-\d{2}-\d{2}\b/))return[m[0],m[0]];
+ return null;
+}
+function handle(raw,voice){
+ const t=raw.toLowerCase().replace(/[’]/g,"'").trim();let m;
+ if(!t)return{u:'Nothing heard.',h:'Type or say a command.'};
+ if(/\b(prescribe|start|add|draft)\b.+\bfor\b/.test(t)&&!/remind/.test(t)){
+  if(role!=='doctor'){log('draft medicine','refused in patient view');return{u:'Not available.',h:'Medicines can only be drafted by a clinician.'}}
+  m=t.match(/(?:prescribe|start|add|draft)\s+([a-z]+)\s+(.+?)\s+for\s+(.+)$/);
+  if(!m)return{u:'Could not read the medicine.',h:'Try "Draft hydralazine 25 mg twice daily for Ahmed Siddiqui".'};
+  const r=resolve(m[3]),g=gate(r,'draft medicine');if(g)return g;
+  const drug=m[1],look=LOOK[drug],known=REF[drug];
+  drafts.push({id:++did,p:r.p,drug,dose:m[2],heard:raw,voice,done:0});log('draft '+drug+' for '+r.p.name,'pending, not active');
+  return{u:'Draft: '+drug+' '+m[2]+' for '+r.p.name+'.',h:'Draft saved as <b>pending</b>. It is not active. A named clinician must confirm it on screen (see Medicine drafts).'+(known?'':'<br><span class="warn">"'+esc(drug)+'" is not in the demo reference. Check the spelling.</span>')+(look?'<br><span class="warn">Look-alike warning: '+esc(drug)+' is easily confused with '+look+'. Check the drug name before confirming.</span>':'')};
+ }
+ if(/\bremind/.test(t)){
+  const toPt=/remind (the )?patient/.test(t);
+  if(toPt&&role!=='doctor')return{u:'Not available.',h:'Only clinicians can send reminders to patients.'};
+  let p=null;
+  if(role==='patient')p=byId(me);else if(sel)p=sel;
+  if(toPt&&!p)return{u:'No patient chosen.',h:'Open a patient first, then ask me to remind them.'};
+  const dt=dateOf(t);
+  if(!dt)return{u:'No date understood.',h:'Date: <b>not recorded</b>. Say "today", "tomorrow", "in 3 days" or YYYY-MM-DD.'};
+  let task=t.replace(dt[1],'').replace(/remind\s+(me|the patient|patient)?/,'').replace(/\b(on|by|for)\s*$/,'').replace(/^\s*(to|about)\s+/,'').replace(/\s+/g,' ').trim();
+  if(!task)task='follow up';
+  const owner=toPt?p.id:(role==='doctor'?'doctor':me);
+  rem.push({text:task,date:dt[0],owner,pid:p?p.id:null});
+  log('reminder: '+task,'created for '+(toPt?p.name:'self'));
+  return{u:'Reminder '+(toPt?'for '+p.name:'for you')+' on '+dt[0]+': '+task+'.',h:'Reminder added (no orders or changes to the chart).'};
+ }
+ if(/unfiled|unacknowledged|not acknowledged/.test(t)){
+  if(role!=='doctor'){log('unfiled query','refused in patient view');return{u:'Not available.',h:'This list is for clinicians.'}}
+  let h='',n=0;
+  assigned().forEach(p=>{p.dx.filter(d=>!d.filed).forEach(d=>{n++;h+='<li>'+esc(p.name)+': diagnosis not filed, '+esc(d.t)+'</li>'});p.res.filter(r=>!r.ack).forEach(r=>{n++;h+='<li>'+esc(p.name)+': result not acknowledged, '+esc(r.t)+'</li>'})});
+  log('unfiled/unacknowledged','listed '+n);
+  return{u:'Listing unfiled diagnoses and unacknowledged results.',h:n?'<ul>'+h+'</ul><div class="src">Source: chart records of your assigned patients</div>':'Nothing waiting.'};
+ }
+ if(/appointment/.test(t)){
+  const r=resolve(role==='patient'?'':(t.match(/(?:for|of)\s+(.+?)(?:'s)?$/)||[0,''])[1].replace(/\?/g,''));const g=gate(r,'appointment');if(g)return g;
+  sel=role==='doctor'?r.p:sel;log('appointment '+r.p.name,'shown');return{u:'Next appointment for '+r.p.name+'.',h:esc(r.p.next)+'<div class="src">Source: schedule</div>'};
+ }
+ const drug=Object.keys(REF).find(k=>t.includes(k));
+ if(/(what does|what is|what's|why was|why is|why did)/.test(t)&&drug){
+  let h='<b>'+drug[0].toUpperCase()+drug.slice(1)+'</b>: '+REF[drug];
+  const cur=role==='patient'?byId(me):sel;
+  if(/why/.test(t)){
+   const mm=cur&&cur.meds.find(x=>x.n.toLowerCase()===drug);
+   h=mm?'Chart reason for '+esc(cur.name)+': <b>'+esc(mm.why||'not recorded')+'</b>.<br>'+h:'Reason in chart: <b>not recorded</b> (open the patient first).<br>'+h;
+  }
+  if(LOOK[drug])h+='<br><span class="warn">Look-alike: do not confuse with '+LOOK[drug]+'.</span>';
+  log('medicine info: '+drug,'shown');
+  return{u:'Explaining '+drug+'.',h:h+'<div class="src">Source: demo reference list (a real build would cite DailyMed or RxNorm). Information only, not advice.</div>'};
+ }
+ if(/\b(medications?|meds|medicines?)\b/.test(t)){
+  m=t.match(/(?:show|list|open|get|what are)\s+(.*?)(?:'s)?\s*(?:current\s+)?(?:medications?|meds|medicines?)/);
+  const r=resolve(m?m[1].replace(/\b(the|are)\b/g,'').trim():''),g=gate(r,'show medications');if(g)return g;
+  if(role==='doctor')sel=r.p;log('view medications '+r.p.name,'allowed');
+  return{u:'Showing current medications for '+r.p.name+'.',h:medsHtml(r.p)};
+ }
+ return{u:'I did not understand that.',h:'Try one of the examples below. In this demo I only read the chart or set reminders. I never place orders.'};
+}
+function run(t,voice){
+ const o=handle(t,voice);feed.unshift({t,voice,o});feed=feed.slice(0,6);draw();
+ if($('#spk').checked&&window.speechSynthesis){speechSynthesis.cancel();speechSynthesis.speak(new SpeechSynthesisUtterance(o.u))}
+}
+function chartHtml(){
+ const p=role==='patient'?byId(me):sel;
+ if(!p)return'<h2>Chart</h2><div class="src">No patient open. Ask for a patient\'s medications to open their chart.</div>';
+ let h='<h2>'+esc(p.name)+'</h2><b>Medications</b>'+medsHtml(p)+'<p><b>Next appointment:</b> '+esc(p.next)+'</p>';
+ if(role==='doctor'){
+  h+='<b>Diagnoses</b><ul>'+(p.dx.map(d=>'<li>'+esc(d.t)+(d.filed?'':' <span class="warn">(unfiled)</span>')+'</li>').join('')||'<li>not recorded</li>')+'</ul>';
+  h+='<b>Results</b><ul>'+(p.res.map(r=>'<li>'+esc(r.t)+(r.ack?'':' <span class="warn">(not acknowledged)</span>')+'</li>').join('')||'<li>not recorded</li>')+'</ul>';
+ }
+ return h;
+}
+function draw(){
+ $('#who').textContent=role==='doctor'?'Signed in as Dr. Rana (simulated). Sees 3 assigned patients.':'You can see your own record only.';
+ $('#meBox').hidden=role!=='patient';
+ $('#draftCard').hidden=role!=='doctor';
+ $('#cmd').placeholder=role==='doctor'?"Show Ahmed Khan's medications":'Show my medications';
+ $('#chips').innerHTML=(role==='doctor'?["Show Ahmed's medications","Show Sara Noor's medications","What does hydralazine do?","Why was metformin given?","Remind me to review his lab tomorrow","Remind the patient about the eye test in 3 days","What's unfiled?","Draft hydralazine 25 mg twice daily for Ahmed Siddiqui","Show Bilal's medications"]:["Show my medications","What does lisinopril do?","When is my next appointment?","Remind me to take my pills tomorrow","Show Sara Noor's medications"]).map(c=>'<button class="g" data-c="'+esc(c)+'">'+esc(c)+'</button>').join('');
+ $('#feed').innerHTML=feed.map(f=>'<div class="heard"><span class="src">'+(f.voice?'Heard':'You typed')+':</span> '+esc(f.t)+'<br><b>I understood:</b> '+esc(f.o.u)+'</div><div style="margin:0 0 12px">'+f.o.h+'</div>').join('');
+ $('#chart').innerHTML=chartHtml();
+ const mine=rem.filter(r=>role==='doctor'?(r.owner==='doctor'||r.owner!==me):r.owner===me).sort((a,b)=>a.date<b.date?-1:1);
+ $('#rem').innerHTML=mine.length?mine.map(r=>'<div class="item"><b>'+esc(r.date)+'</b> '+esc(r.text)+(r.pid&&role==='doctor'?'<div class="src">'+(r.owner==='doctor'?'About ':'Sent to ')+esc(byId(r.pid).name)+'</div>':'')+'</div>').join(''):'<div class="src">No reminders yet.</div>';
+ $('#drafts').innerHTML=drafts.length?drafts.map(d=>'<div class="item"><b>'+esc(d.drug)+'</b> '+esc(d.dose)+' for '+esc(d.p.name)+'<div class="src">'+(d.voice?'Entered by voice, heard as: "'+esc(d.heard)+'". ':'Typed. ')+'</div>'+(d.done?'<span style="color:var(--ac)">Active. Confirmed by '+esc(d.by)+'.</span>':'<span class="warn">Pending. Not active.</span><div class="row" style="margin-top:6px"><select data-s="'+d.id+'" aria-label="Confirming clinician">'+DOCS.map(x=>'<option>'+x+'</option>').join('')+'</select><button class="b" data-ok="'+d.id+'">Confirm</button></div><button class="g" data-no="'+d.id+'">Discard</button>')+'</div>').join(''):'<div class="src">Nothing pending. Say "Draft [medicine] [dose] for [patient]".</div>';
+ $('#log').innerHTML=logs.length?logs.map(l=>'<div class="item">'+esc(l)+'</div>').join(''):'Nothing logged yet.';
+}
+document.addEventListener('click',e=>{
+ const c=e.target.closest('[data-c]'),ok=e.target.closest('[data-ok]'),no=e.target.closest('[data-no]');
+ if(c){$('#cmd').value=c.dataset.c;run(c.dataset.c,false)}
+ if(ok){const d=drafts.find(x=>x.id==ok.dataset.ok),by=document.querySelector('[data-s="'+d.id+'"]').value;d.done=1;d.by=by;d.p.meds.push({n:d.drug[0].toUpperCase()+d.drug.slice(1),d:d.dose,why:''});log('confirm '+d.drug+' for '+d.p.name,'activated by '+by);draw()}
+ if(no){drafts=drafts.filter(x=>x.id!=no.dataset.no);draw()}
+});
+function setRole(r){role=r;sel=null;$('#vd').setAttribute('aria-pressed',r==='doctor');$('#vp').setAttribute('aria-pressed',r==='patient');feed=[];draw()}
+$('#vd').onclick=()=>setRole('doctor');$('#vp').onclick=()=>setRole('patient');
+$('#me').innerHTML=P.filter(p=>p.id!=='p4').map(p=>'<option value="'+p.id+'">'+esc(p.name)+'</option>').join('');
+$('#me').onchange=e=>{me=e.target.value;feed=[];draw()};
+$('#go').onclick=()=>{run($('#cmd').value,false)};
+$('#cmd').addEventListener('keydown',e=>{if(e.key==='Enter')run($('#cmd').value,false)});
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+$('#mic').onclick=()=>{
+ if(!SR){feed.unshift({t:'(voice)',o:{u:'Voice not supported here.',h:'Your browser has no speech recognition. Type instead.'}});draw();return}
+ const r=new SR();r.lang='en-US';r.onresult=e=>{const t=e.results[0][0].transcript;$('#cmd').value=t;run(t,true)};
+ r.onerror=()=>{feed.unshift({t:'(voice)',o:{u:'Could not hear you.',h:'Check microphone permission, or type instead.'}});draw()};r.start();
+};
+draw();
+</script></main></body></html>
