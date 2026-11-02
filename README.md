@@ -45,7 +45,7 @@ not clinically evaluated; sending text to a model API needs a BAA/DPA and de-ide
 ```bash
 pip install -r requirements-dev.txt
 python scripts/demo_local.py     # files 4 synthetic diagnoses, prints the ophthalmology summary
-pytest -q                        # 45 tests
+pytest -q                        # 73 tests
 ```
 
 Or run it in the browser: click the **Open in Colab** badge above.
@@ -99,6 +99,22 @@ The Python tests also run offline against a fake FHIR client. API docs: http://l
 All but `/health` and `/cds-services` require the `X-Webhook-Secret` header. The server **fails closed** if
 `WEBHOOK_SECRET` is unset.
 
+### CDS Hooks authentication (EHR-signed JWT)
+
+Real EHRs sign every CDS Hooks call with a JWT. Set these three variables and `POST /cds-services/ehr-previsit`
+accepts **only** a valid JWT (the shared secret stops working on that endpoint):
+
+| Variable | Meaning |
+|---|---|
+| `CDS_JWT_ISSUERS` | comma-separated `iss` values you trust, e.g. `https://ehr.example.org` |
+| `CDS_JWKS_URLS` | comma-separated trusted JWKS URLs (https; http only for localhost) |
+| `CDS_AUDIENCE` | the exact endpoint URL the EHR calls, e.g. `https://plugin.example.org/cds-services/ehr-previsit` |
+
+Checked on every call: signature (RS384/ES384 only), `iss`, `aud`, `exp`, `iat`, lifetime of 10 minutes or less, and
+a one-time `jti` (replay protection). The token cannot choose where keys are fetched from: its `jku` must match a
+configured URL. If any of the three variables is missing the endpoint returns 503 rather than opening up.
+Leave all three unset to stay in sandbox mode (shared secret), as before.
+
 ## Safety choices
 
 - Never guesses silently: free text gives a suggested code, a `needs-coding-review` tag and a confirm task.
@@ -109,13 +125,24 @@ All but `/health` and `/cds-services` require the `X-Webhook-Secret` header. The
 - Shows nothing rather than something wrong: no card when the specialty is unknown or nothing is recorded.
 - Unknown clinical status is shown in its own "status not recorded" section and counted on the CDS card, never assumed to be a past problem.
 
+## Security and safety documents
+
+- [`SECURITY.md`](SECURITY.md): how to report a vulnerability, scope, contributor rules.
+- [`THREAT_MODEL.md`](THREAT_MODEL.md): assets, entry points, threats, current controls and gaps.
+- [`SAFETY_CASE.md`](SAFETY_CASE.md): clinical hazard log, principles and pilot prerequisites (draft, needs clinician review).
+
+CI runs `pip-audit` and `bandit` on every push and weekly (`.github/workflows/security.yml`).
+
 ## Known limitations
 
 - The ICD-10 to specialty table needs clinical review before any pilot (see the audit above).
 - Search results use the first page only (`_count=200`); no paging.
 - Normalized Observations are not yet specialty-tagged, so they don't appear in summaries.
-- Auth is a shared secret, fine for a sandbox, not for production. The CDS Hooks endpoint must verify the
-  EHR's signed JWT, and users should authenticate via SMART on FHIR, before any pilot.
+- Auth is a shared secret by default, fine for a sandbox, not for production. The CDS Hooks endpoint can verify the
+  EHR's signed JWT (see above); the other endpoints still use the shared secret, and users should authenticate via
+  SMART on FHIR before any pilot.
+- The CDS Hooks JWT check is unit-tested with synthetic keys but not yet against a real EHR's tokens. Its `jti`
+  replay cache is per process: use a shared store (e.g. Redis) if you run more than one instance.
 - The CDS Hooks service is tested against a fake FHIR client and a local HAPI server, not yet in the official CDS Hooks sandbox or a real EHR.
 - Docker Compose passes on a GitHub Actions runner. In one GitHub Codespace the plugin container timed out connecting to HAPI; this was not diagnosed and looks environment-specific.
 - No PHI handling, encryption at rest, access logging, or consent logic.
@@ -123,7 +150,7 @@ All but `/health` and `/cds-services` require the `X-Webhook-Secret` header. The
 ## Roadmap
 
 1. Run the accuracy study in `EVALUATION.md` and fill the gaps found in the audit, with clinician sign-off.
-2. Verify the EHR's JWT in the CDS Hooks service and test it in the CDS Hooks sandbox.
+2. Test the CDS Hooks service (including JWT verification) in the CDS Hooks sandbox and a real EHR sandbox.
 3. Add sample FHIR `Subscription` resources so the FHIR server calls the plugin automatically.
 4. Pagination, observation tagging, retry and dead-letter handling.
 5. Shadow-mode pilot beside a real chart at a partner clinic, under that site's governance. Measure
@@ -133,11 +160,11 @@ All but `/health` and `/cds-services` require the `X-Webhook-Secret` header. The
 ## Project layout
 
 ```
-app/        main.py  filing.py  cds_hooks.py  normalize.py  auth.py  config.py
+app/        main.py  filing.py  cds_hooks.py  cds_auth.py  normalize.py  auth.py  config.py  lookup.py  nlp.py
 tests/      pytest suite (offline, fake FHIR client)
 scripts/    demo_local.py  evaluate_filing.py  build_icd10_dataset.py  coverage_icd10.py  e2e_docker.sh  gen_keys.py
 data/       coverage_by_chapter.csv  general_blocks.csv  gold_template.csv
-notebooks/  ehr_plugin_colab_demo.ipynb
+notebook/   ehr_plugin_colab_demo.ipynb
 EVALUATION.md   four-stage evaluation plan
 ```
 
