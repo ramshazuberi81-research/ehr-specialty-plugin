@@ -180,7 +180,7 @@ engineers who can critique the design. Please keep all test data synthetic.
 
 ## Author
 
-Ramsha Zuberi, Clinical AI Researcher (oral oncology focus). Developed with AI assistance; design, clinical framing, testing and review by the author.
+Dr.Ramsha Zuberi, Clinical AI Researcher. Developed with AI assistance; design, clinical framing, testing and review by the author.
 [ORCID 0009-0004-9272-0343](https://orcid.org/0009-0004-9272-0343) · [GitHub](https://github.com/ramshazuberi81-research)
 
 ## License
