@@ -8,3 +8,5 @@ __pycache__/
 *.pyc
 data/icd10cm_billable.csv
 .ipynb_checkpoints/
+_pycache_/
+.env.local

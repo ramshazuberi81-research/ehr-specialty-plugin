@@ -2,11 +2,11 @@
 services:
   fhir:
     image: hapiproject/hapi:latest
-    ports: ["8080:8080"]
+    ports: ["127.0.0.1:8080:8080"]  # localhost only: this test server has no authentication
   plugin:
     build: .
     env_file: .env
     environment:
       FHIR_BASE: http://fhir:8080/fhir
-    ports: ["8000:8000"]
+    ports: ["127.0.0.1:8000:8000"]
     depends_on: [fhir]
