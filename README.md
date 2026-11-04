@@ -118,6 +118,4 @@ scripts/    demo_local.py  gen_keys.py
 `python scripts/gen_keys.py`, register `jwks.json` with your FHIR server, then set `SMART_CLIENT_ID`.
 Never commit `private_key.pem`.
 
-## License
 
-MIT (see `LICENSE`, replace `<YOUR NAME>`). Contributions welcome. Please keep all test data synthetic.
