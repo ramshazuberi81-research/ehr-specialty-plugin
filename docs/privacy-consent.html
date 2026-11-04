@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Privacy consent (demo)</title>
+<style>
+  :root{color-scheme:light dark;--bg:#fff;--fg:#1f2933;--muted:#5b6b79;--card:#eef4f6;--line:#cfdbe2;--accent:#1b8a8f;--accent-fg:#fff;--warn:#fff4d6;--warn-fg:#6b4a00;--bad:#fde8e8;--bad-fg:#8a1f1f;--ok:#e3f6ea;--ok-fg:#14532d}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10171d;--fg:#e6edf2;--muted:#9fb0bd;--card:#18232b;--line:#2c3b47;--accent:#3ab3b8;--accent-fg:#06222a;--warn:#3a2f10;--warn-fg:#f3d98b;--bad:#3b1c1c;--bad-fg:#f5b5b5;--ok:#15301f;--ok-fg:#a8e6bf}}
+  :root[data-theme="dark"]{--bg:#10171d;--fg:#e6edf2;--muted:#9fb0bd;--card:#18232b;--line:#2c3b47;--accent:#3ab3b8;--accent-fg:#06222a;--warn:#3a2f10;--warn-fg:#f3d98b;--bad:#3b1c1c;--bad-fg:#f5b5b5;--ok:#15301f;--ok-fg:#a8e6bf}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  main{max-width:52rem;margin:0 auto;padding:1.25rem 1rem 3rem}
+  h1{font-size:1.6rem;margin:.25rem 0 .5rem}
+  h2{font-size:1.15rem;margin:0 0 .5rem}
+  .banner{background:var(--warn);color:var(--warn-fg);border-radius:8px;padding:.75rem 1rem;margin:.75rem 0}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:1rem;margin:1rem 0}
+  .row{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center}
+  button{font:inherit;border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:8px;padding:.5rem .9rem;cursor:pointer}
+  button.primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent);font-weight:600}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  button[aria-pressed="true"]{outline:2px solid var(--accent)}
+  label{display:block;margin:.5rem 0}
+  input[type=text]{font:inherit;width:100%;max-width:22rem;padding:.45rem .6rem;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg)}
+  .pill{display:inline-block;padding:.15rem .6rem;border-radius:999px;font-size:.85rem;font-weight:600}
+  .pill.wait{background:var(--warn);color:var(--warn-fg)}
+  .pill.ok{background:var(--ok);color:var(--ok-fg)}
+  .pill.bad{background:var(--bad);color:var(--bad-fg)}
+  .denied{background:var(--bad);color:var(--bad-fg);border-radius:10px;padding:1rem}
+  pre{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:.75rem;overflow-x:auto;font-size:.8rem;margin:.5rem 0 0}
+  table{width:100%;border-collapse:collapse;font-size:.9rem}
+  th,td{text-align:left;padding:.35rem .5rem;border-bottom:1px solid var(--line)}
+  .muted{color:var(--muted);font-size:.9rem}
+  .log{overflow-x:auto}
+  a.primary-link{display:inline-block;background:var(--accent);color:var(--accent-fg);border-radius:8px;padding:.6rem 1.1rem;font-weight:600;text-decoration:none}
+  [hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main>
+  <h1>Privacy consent</h1>
+  <p class="muted">Ask the Chart (demo). Fake patient only. Not for clinical use.</p>
+
+  <div class="banner" role="note">
+    <strong>Demo only.</strong> Who can open this form is simulated in your browser, so it does not truly protect anything.
+    Real protection has to be enforced on a server (login, authorization, encryption, audit). See “What a real version needs” at the bottom.
+  </div>
+
+  <section class="card" aria-labelledby="who">
+    <h2 id="who">1. Sign in (simulated)</h2>
+    <div class="row" role="group" aria-label="Choose who you are">
+      <button type="button" data-role="patient" aria-pressed="false">Patient: Jane Doe (fake)</button>
+      <button type="button" data-role="doctor" aria-pressed="false">Doctor: Dr. A (fake)</button>
+      <button type="button" data-role="other" aria-pressed="false">Someone else</button>
+    </div>
+    <p class="muted" id="whoami" aria-live="polite">Not signed in.</p>
+  </section>
+
+  <section id="denied" class="denied" role="alert" hidden>
+    <strong>Access denied.</strong> Only the patient and their treating doctor can open this consent form.
+    The attempt was written to the access log.
+  </section>
+
+  <section id="protected" hidden>
+    <section class="card" aria-labelledby="status-h">
+      <h2 id="status-h">2. Consent status</h2>
+      <p>Status: <span id="status" class="pill wait">Not started</span></p>
+      <p class="muted" id="status-note"></p>
+    </section>
+
+    <section class="card" id="continue-card" aria-labelledby="go-h" hidden>
+      <h2 id="go-h">Consent is active</h2>
+      <p>Both signatures are in. You can now open the demo.</p>
+      <a id="btn-continue" class="primary-link" href="demo.html">Continue to the demo</a>
+    </section>
+
+    <section class="card" id="patient-form" aria-labelledby="form-h" hidden>
+      <h2 id="form-h">3. Patient: your choices</h2>
+      <p class="muted">You decide what is shared. You can withdraw at any time.</p>
+      <label><input type="checkbox" id="c-share" checked> Share my records with specialists who treat me (filing and pre-visit summaries)</label>
+      <label><input type="checkbox" id="c-notify" checked> Let the system notify my care team when a new diagnosis is filed</label>
+      <label><input type="checkbox" id="c-ai"> Allow the plain-language assistant (sends only the request text to a model service)</label>
+      <label><input type="checkbox" id="c-voice"> Allow voice input (your browser’s speech service may send audio to its vendor)</label>
+      <label>Type your full name to sign
+        <input type="text" id="sign-name" autocomplete="off" placeholder="Jane Doe">
+      </label>
+      <div class="row">
+        <button type="button" class="primary" id="btn-sign-patient">Sign and send to my doctor</button>
+        <button type="button" id="btn-withdraw-patient" hidden>Withdraw consent</button>
+      </div>
+    </section>
+
+    <section class="card" id="doctor-form" aria-labelledby="doc-h" hidden>
+      <h2 id="doc-h">3. Doctor: review and countersign</h2>
+      <p class="muted">The doctor confirms the choices were explained and recorded correctly. The doctor cannot change the patient’s choices.</p>
+      <div id="doc-summary"></div>
+      <div class="row">
+        <button type="button" class="primary" id="btn-sign-doctor" disabled>Countersign as Dr. A</button>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="fhir-h">
+      <h2 id="fhir-h">Record (FHIR Consent, illustrative)</h2>
+      <p class="muted">Visible only to the patient and the doctor.</p>
+      <pre id="fhir" tabindex="0">No consent yet.</pre>
+    </section>
+
+    <section class="card" aria-labelledby="log-h">
+      <h2 id="log-h">Access log</h2>
+      <p class="muted">Every open, sign, withdraw and refused attempt is recorded.</p>
+      <div class="log">
+        <table>
+          <thead><tr><th>Time</th><th>Who</th><th>What</th></tr></thead>
+          <tbody id="log-body"></tbody>
+        </table>
+      </div>
+    </section>
+  </section>
+
+  <section class="card" aria-labelledby="real-h">
+    <h2 id="real-h">What a real version needs</h2>
+    <ul>
+      <li>Real login for the patient and the doctor (for example SMART on FHIR), plus a second identifier for the patient.</li>
+      <li>Authorization checked on the server for every read and write, so “only these two people” is enforced, not just hidden.</li>
+      <li>Consent stored as a FHIR <code>Consent</code> resource in the FHIR server, encrypted in transit and at rest, with an audit trail.</li>
+      <li>The rest of the system must read that consent before sharing anything.</li>
+      <li>Review by the site’s privacy, legal and clinical safety teams before any pilot.</li>
+    </ul>
+  </section>
+</main>
+
+<script>
+(function(){
+  // All state lives in memory only. Nothing is stored or sent anywhere.
+  var PATIENT = "Jane Doe (fake)", DOCTOR = "Dr. A (fake)";
+  var state = { role:null, status:"none", choices:null, patientName:"", patientAt:"", doctorAt:"" };
+  var logRows = [];
+
+  var $ = function(id){ return document.getElementById(id); };
+  var roleLabel = { patient:PATIENT, doctor:DOCTOR, other:"Unknown visitor" };
+
+  // Only a "consent is active" flag is kept for this browser tab, so demo.html can check it.
+  // This is a demo gate, not real security: a server must enforce it in a real product.
+  function setFlag(on){
+    try{ if(on) sessionStorage.setItem("consentActive","1"); else sessionStorage.removeItem("consentActive"); }catch(e){}
+  }
+  function now(){ return new Date().toLocaleTimeString(); }
+  function addLog(who, what){
+    logRows.push({t:now(), who:who, what:what});
+    renderLog();
+  }
+  function renderLog(){
+    var body = $("log-body"); body.textContent = "";
+    logRows.forEach(function(r){
+      var tr = document.createElement("tr");
+      [r.t, r.who, r.what].forEach(function(v){
+        var td = document.createElement("td"); td.textContent = v; tr.appendChild(td);
+      });
+      body.appendChild(tr);
+    });
+  }
+
+  function setPill(text, cls){
+    var p = $("status"); p.textContent = text; p.className = "pill " + cls;
+  }
+
+  function choicesText(c){
+    return [
+      ["Share records with treating specialists", c.share],
+      ["Notify care team about new diagnoses", c.notify],
+      ["Plain-language assistant (model service)", c.ai],
+      ["Voice input", c.voice]
+    ];
+  }
+
+  function renderFhir(){
+    var pre = $("fhir");
+    if(state.status === "none" || !state.choices){ pre.textContent = "No consent yet."; return; }
+    var fhirStatus = state.status === "active" ? "active" : (state.status === "withdrawn" ? "inactive" : "proposed");
+    var c = state.choices;
+    var res = {
+      resourceType:"Consent",
+      status:fhirStatus,
+      scope:{coding:[{system:"http://terminology.hl7.org/CodeSystem/consentscope",code:"patient-privacy"}]},
+      category:[{coding:[{system:"http://loinc.org",code:"59284-0",display:"Consent document"}]}],
+      patient:{display:PATIENT},
+      dateTime:state.patientAt,
+      performer:[{display:state.patientName || PATIENT}],
+      provision:{
+        type:"deny",
+        provision:choicesText(c).map(function(x){
+          return {type:x[1] ? "permit" : "deny", code:[{text:x[0]}]};
+        })
+      },
+      note:[{text:"Demo record. Doctor countersignature: " + (state.doctorAt || "pending")}]
+    };
+    pre.textContent = JSON.stringify(res, null, 2);
+  }
+
+  function renderStatus(){
+    var note = $("status-note");
+    if(state.status === "none"){ setPill("Not started","wait"); note.textContent = "The patient has not filled in the form yet."; }
+    else if(state.status === "awaiting"){ setPill("Awaiting doctor","wait"); note.textContent = "Signed by the patient at " + state.patientAt + ". Waiting for the doctor to countersign."; }
+    else if(state.status === "active"){ setPill("Active","ok"); note.textContent = "Signed by both. Patient at " + state.patientAt + ", doctor at " + state.doctorAt + "."; }
+    else { setPill("Withdrawn","bad"); note.textContent = "The patient withdrew consent. Nothing may be shared under this form."; }
+  }
+
+  function renderDoctor(){
+    var box = $("doc-summary"); box.textContent = "";
+    var btn = $("btn-sign-doctor");
+    if(!state.choices || state.status === "none"){
+      var p = document.createElement("p"); p.textContent = "Waiting for the patient to sign first.";
+      box.appendChild(p); btn.disabled = true; return;
+    }
+    var ul = document.createElement("ul");
+    choicesText(state.choices).forEach(function(x){
+      var li = document.createElement("li");
+      li.textContent = x[0] + ": " + (x[1] ? "Yes" : "No");
+      ul.appendChild(li);
+    });
+    var who = document.createElement("p"); who.textContent = "Signed by: " + state.patientName + " at " + state.patientAt;
+    box.appendChild(who); box.appendChild(ul);
+    btn.disabled = (state.status !== "awaiting");
+  }
+
+  function render(){
+    var role = state.role;
+    var allowed = (role === "patient" || role === "doctor");
+    $("denied").hidden = !(role === "other");
+    $("protected").hidden = !allowed;
+    $("whoami").textContent = role ? ("Signed in as: " + roleLabel[role]) : "Not signed in.";
+    document.querySelectorAll("[data-role]").forEach(function(b){
+      b.setAttribute("aria-pressed", String(b.getAttribute("data-role") === role));
+    });
+    if(!allowed) return;
+    $("patient-form").hidden = (role !== "patient");
+    $("doctor-form").hidden = (role !== "doctor");
+    $("btn-withdraw-patient").hidden = !(role === "patient" && (state.status === "awaiting" || state.status === "active"));
+    $("btn-sign-patient").disabled = (state.status === "active");
+    $("continue-card").hidden = (state.status !== "active");
+    setFlag(state.status === "active");
+    renderStatus(); renderDoctor(); renderFhir();
+  }
+
+  document.querySelectorAll("[data-role]").forEach(function(b){
+    b.addEventListener("click", function(){
+      var r = b.getAttribute("data-role");
+      state.role = r;
+      if(r === "other") addLog(roleLabel[r], "Tried to open the consent form: REFUSED");
+      else addLog(roleLabel[r], "Opened the consent form");
+      render();
+    });
+  });
+
+  $("btn-sign-patient").addEventListener("click", function(){
+    if(state.role !== "patient") return;
+    var name = $("sign-name").value.trim();
+    if(name.length < 3){ alert("Please type your full name to sign."); return; }
+    state.choices = {
+      share:$("c-share").checked, notify:$("c-notify").checked,
+      ai:$("c-ai").checked, voice:$("c-voice").checked
+    };
+    state.patientName = name; state.patientAt = now(); state.doctorAt = ""; state.status = "awaiting";
+    addLog(PATIENT, "Signed the consent form");
+    render();
+  });
+
+  $("btn-sign-doctor").addEventListener("click", function(){
+    if(state.role !== "doctor" || state.status !== "awaiting") return;
+    state.doctorAt = now(); state.status = "active";
+    addLog(DOCTOR, "Countersigned the consent form");
+    render();
+  });
+
+  $("btn-continue").addEventListener("click", function(){
+    addLog(roleLabel[state.role], "Continued to the demo");
+  });
+
+  $("btn-withdraw-patient").addEventListener("click", function(){
+    if(state.role !== "patient") return;
+    state.status = "withdrawn";
+    addLog(PATIENT, "Withdrew consent");
+    render();
+  });
+
+  setFlag(false);
+  render(); renderLog();
+})();
+</script>
+</body>
+</html>
