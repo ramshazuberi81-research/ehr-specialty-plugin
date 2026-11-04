@@ -1,0 +1,55 @@
+<!-- Paste this block into index.html, just before </body> (or under the "Agent and access log" section). -->
+<section id="safety-security" aria-labelledby="safety-security-title" style="max-width:52rem;margin:2rem auto;padding:0 1rem;font:inherit;color:inherit;">
+  <h2 id="safety-security-title" style="margin:0 0 .5rem;">Safety, privacy and security</h2>
+  <p style="margin:0 0 1rem;">
+    <strong>Research prototype. Fake patients only. Not for clinical use.</strong>
+    It has not been security-reviewed or regulatory-reviewed, and it must never be pointed at real patient data.
+  </p>
+
+  <details style="border:1px solid rgba(128,128,128,.4);border-radius:8px;padding:.75rem 1rem;margin-bottom:.75rem;" open>
+    <summary style="cursor:pointer;font-weight:600;">Clinical safety: how it is designed</summary>
+    <ul style="margin:.75rem 0 0;padding-left:1.25rem;line-height:1.5;">
+      <li><strong>A human stays accountable.</strong> The software suggests and files; a clinician confirms anything uncertain.</li>
+      <li><strong>Never guesses silently.</strong> Uncertain input becomes a visible suggestion with a review flag.</li>
+      <li><strong>Never drops or "fixes" data.</strong> Unknown codes go to a general section; implausible lab values go to review.</li>
+      <li><strong>Shows its source.</strong> Every summary line cites the record it came from; gaps say "not recorded".</li>
+      <li><strong>Shows nothing rather than something wrong.</strong> No card if the specialty is unknown or nothing is recorded.</li>
+    </ul>
+    <p style="margin:.75rem 0 0;line-height:1.5;">
+      A draft hazard log lists 12 risks (for example wrong specialty routing, over-trust in the summary, wrong patient selected,
+      and a model misreading a note). Every row still needs a named clinical owner, and nothing in it means the software is safe for clinical use.
+      See <a href="https://github.com/ramshazuberi81-research/ehr-specialty-plugin">the repository</a> for the full safety case.
+    </p>
+  </details>
+
+  <details style="border:1px solid rgba(128,128,128,.4);border-radius:8px;padding:.75rem 1rem;margin-bottom:.75rem;">
+    <summary style="cursor:pointer;font-weight:600;">Privacy: what this demo does and does not do</summary>
+    <ul style="margin:.75rem 0 0;padding-left:1.25rem;line-height:1.5;">
+      <li>Everything runs in this page with synthetic data. Typing never leaves your device.</li>
+      <li>The sign-in on this page is simulated. A real product needs real login, a second patient identifier and consent handling.</li>
+      <li>Voice uses your browser's speech service, which may send audio to its vendor. Use typing if that matters to you.</li>
+      <li>The optional plain-language layer sends only the request text to a model API. Real data would need a data-processing agreement and de-identification first.</li>
+      <li>No protected health information handling, encryption at rest or consent logic exists yet.</li>
+    </ul>
+  </details>
+
+  <details style="border:1px solid rgba(128,128,128,.4);border-radius:8px;padding:.75rem 1rem;margin-bottom:.75rem;">
+    <summary style="cursor:pointer;font-weight:600;">Security: controls in the code</summary>
+    <ul style="margin:.75rem 0 0;padding-left:1.25rem;line-height:1.5;">
+      <li>Webhooks fail closed if the shared secret is unset, and the secret is compared in constant time.</li>
+      <li>Optional signed-token (SMART) login towards the FHIR server, and optional checking of the EHR's signed token on the CDS Hooks endpoint.</li>
+      <li>Dependency and code scans (pip-audit and bandit) run on every push and weekly.</li>
+      <li>Request bodies and clinical content are never logged.</li>
+      <li>Docker Compose publishes ports on localhost only.</li>
+    </ul>
+    <p style="margin:.75rem 0 0;line-height:1.5;">
+      Found a vulnerability? Please report it privately through the repository's Security tab (Report a vulnerability).
+      Do not open a public issue, and never include real patient data.
+    </p>
+  </details>
+
+  <p style="margin:0;font-size:.9em;opacity:.8;">
+    Before any pilot: a named clinical safety officer signs off the specialty table, the site approves governance and privacy,
+    real authentication and audit logging are added, and the tool runs in shadow mode first.
+  </p>
+</section>
